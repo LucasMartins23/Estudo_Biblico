@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cronograma de Leitura Bíblica</title>
+  <style>
+    :root {
+      --bg: #f7f5ef;
+      --card: #ffffff;
+      --ink: #26352c;
+      --muted: #68756b;
+      --green: #496b53;
+      --green-dark: #34513d;
+      --green-light: #e5eee5;
+      --border: #e2e5dc;
+      --gold: #b18a4a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      line-height: 1.5;
+    }
+    header {
+      background: linear-gradient(135deg, #344f3b, #58785c);
+      color: white;
+      padding: 38px 20px 34px;
+      text-align: center;
+    }
+    header .symbol { font-size: 2rem; margin-bottom: 8px; }
+    h1 { margin: 0; font-family: Georgia, serif; font-size: clamp(1.7rem, 4vw, 2.5rem); font-weight: 600; }
+    header p { margin: 10px auto 0; max-width: 620px; color: #edf3e9; }
+    main { max-width: 900px; margin: 24px auto 50px; padding: 0 16px; }
+    .panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 22px;
+      margin-bottom: 18px;
+      box-shadow: 0 5px 18px rgba(36, 54, 39, .04);
+    }
+    .progress-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .progress-head h2, .section-title { margin: 0; font-size: 1.1rem; }
+    .percent { font-size: 1.35rem; color: var(--green); font-weight: 750; }
+    .track { width: 100%; height: 13px; background: #e9ece5; border-radius: 99px; overflow: hidden; margin: 14px 0 9px; }
+    .fill { height: 100%; width: 0%; background: linear-gradient(90deg, #5f8765, #9dbb82); border-radius: inherit; transition: width .25s ease; }
+    .small { font-size: .9rem; color: var(--muted); }
+    .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 18px; }
+    .stat { background: #f6f8f3; border-radius: 12px; padding: 12px; text-align: center; }
+    .stat strong { display: block; font-size: 1.35rem; color: var(--green-dark); }
+    .stat span { font-size: .82rem; color: var(--muted); }
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 16px; }
+    button, select, input[type="search"] {
+      font: inherit; border-radius: 10px; border: 1px solid var(--border); padding: 10px 13px;
+    }
+    button { cursor: pointer; background: var(--green); color: white; border-color: var(--green); }
+    button:hover { background: var(--green-dark); }
+    button.secondary { background: white; color: var(--green-dark); }
+    button.danger { background: white; color: #934a43; border-color: #e8c9c5; }
+    .filters { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+    select, input[type="search"] { width: 100%; background: white; color: var(--ink); }
+    .day-list { display: grid; gap: 10px; margin-top: 16px; }
+    .day {
+      display: flex; gap: 13px; align-items: flex-start;
+      border: 1px solid var(--border); border-radius: 13px; padding: 14px;
+      background: white; transition: background .15s, border-color .15s;
+    }
+    .day.done { background: #f0f6ef; border-color: #c8dcc8; }
+    .day input { accent-color: var(--green); width: 19px; height: 19px; margin: 3px 0 0; flex-shrink: 0; cursor: pointer; }
+    .day-content { flex: 1; min-width: 0; }
+    .day-title { font-weight: 700; }
+    .day-reading { color: var(--green-dark); margin-top: 3px; }
+    .day-note { color: var(--muted); font-size: .88rem; margin-top: 4px; }
+    .badge { display: inline-block; font-size: .75rem; color: var(--green-dark); background: var(--green-light); padding: 3px 8px; border-radius: 99px; margin-left: 6px; }
+    .empty { padding: 25px 12px; text-align: center; color: var(--muted); }
+    footer { text-align: center; color: var(--muted); font-size: .85rem; padding: 0 18px 30px; }
+    @media (max-width: 560px) {
+      .panel { padding: 17px; }
+      .stats { gap: 7px; }
+      .stat { padding: 10px 5px; }
+      .filters { grid-template-columns: 1fr; }
+      .day { padding: 12px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="symbol" aria-hidden="true">✦</div>
+    <h1>Cronograma de Leitura Bíblica</h1>
+    <p>Uma jornada pela Palavra, começando em Josué. Leia com constância, reflita e registre seu progresso.</p>
+  </header>
+
+  <main>
+    <section class="panel" aria-labelledby="progressTitle">
+      <div class="progress-head">
+        <h2 id="progressTitle">Seu progresso</h2>
+        <div class="percent" id="percent">0%</div>
+      </div>
+      <div class="track" role="progressbar" aria-label="Progresso das leituras" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="progressTrack">
+        <div class="fill" id="progressFill"></div>
+      </div>
+      <div class="small" id="progressText">0 de 30 dias concluídos</div>
+      <div class="stats">
+        <div class="stat"><strong id="completedCount">0</strong><span>Dias concluídos</span></div>
+        <div class="stat"><strong id="remainingCount">30</strong><span>Dias restantes</span></div>
+        <div class="stat"><strong id="streakCount">0</strong><span>Dias marcados seguidos*</span></div>
+      </div>
+      <p class="small">*Sequência estimada a partir das marcações diárias, não de datas do calendário.</p>
+      <div class="controls">
+        <button id="markToday">Marcar primeiro dia pendente</button>
+        <button class="secondary" id="exportProgress">Exportar progresso</button>
+        <button class="danger" id="resetProgress">Zerar marcações</button>
+      </div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">Leituras do cronograma</h2>
+      <p class="small">Este modelo contém os primeiros 30 dias, de Josué a Salmos. Marque a caixa ao concluir cada leitura. As marcações ficam salvas neste navegador.</p>
+      <div class="filters">
+        <input type="search" id="search" placeholder="Buscar livro ou capítulo..." aria-label="Buscar leitura">
+        <select id="statusFilter" aria-label="Filtrar por status">
+          <option value="all">Todas as leituras</option>
+          <option value="pending">Somente pendentes</option>
+          <option value="done">Somente concluídas</option>
+        </select>
+      </div>
+      <div class="day-list" id="dayList"></div>
+    </section>
+
+    <section class="panel">
+      <h2 class="section-title">Sugestão para seu momento devocional</h2>
+      <ol>
+        <li>Ore antes de começar e peça entendimento.</li>
+        <li>Leia os capítulos indicados sem pressa.</li>
+        <li>Anote um versículo que chamou sua atenção.</li>
+        <li>Registre o que aprendeu e como pode aplicar no dia a dia.</li>
+      </ol>
+      <p class="small">Se perder um dia, continue de onde parou. A constância é mais importante do que correr para cumprir a meta.</p>
+    </section>
+  </main>
+
+  <footer>Feito para acompanhar sua leitura pessoal. O progresso é armazenado localmente neste navegador.</footer>
+
+  <script>
+    // Cronograma inicial de 30 dias — leituras organizadas em sequência.
+    const readings = [
+      { day: 1, reading: "Josué 1–3" },
+      { day: 2, reading: "Josué 4–6" },
+      { day: 3, reading: "Josué 7–9" },
+      { day: 4, reading: "Josué 10–12" },
+      { day: 5, reading: "Josué 13–15" },
+      { day: 6, reading: "Josué 16–18" },
+      { day: 7, reading: "Josué 19–21" },
+      { day: 8, reading: "Josué 22–24" },
+      { day: 9, reading: "Juízes 1–4" },
+      { day: 10, reading: "Juízes 5–8" },
+      { day: 11, reading: "Juízes 9–12" },
+      { day: 12, reading: "Juízes 13–16" },
+      { day: 13, reading: "Juízes 17–21" },
+      { day: 14, reading: "Rute 1–4" },
+      { day: 15, reading: "1 Samuel 1–4" },
+      { day: 16, reading: "1 Samuel 5–8" },
+      { day: 17, reading: "1 Samuel 9–12" },
+      { day: 18, reading: "1 Samuel 13–16" },
+      { day: 19, reading: "1 Samuel 17–20" },
+      { day: 20, reading: "1 Samuel 21–24" },
+      { day: 21, reading: "1 Samuel 25–28" },
+      { day: 22, reading: "1 Samuel 29–31" },
+      { day: 23, reading: "2 Samuel 1–4" },
+      { day: 24, reading: "2 Samuel 5–8" },
+      { day: 25, reading: "2 Samuel 9–12" },
+      { day: 26, reading: "2 Samuel 13–16" },
+      { day: 27, reading: "2 Samuel 17–20" },
+      { day: 28, reading: "2 Samuel 21–24" },
+      { day: 29, reading: "Revisão das anotações e dos versículos marcados", note: "Retome suas anotações dos dias anteriores." },
+      { day: 30, reading: "Salmos 1–5", note: "Dia de reflexão e oração." }
+    ];
+
+    const STORAGE_KEY = "cronogramaBiblicoJosue_v1";
+    let completed = loadProgress();
+
+    function loadProgress() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+        return new Set(saved.map(Number).filter(n => Number.isInteger(n) && n >= 1 && n <= readings.length));
+      } catch {
+        return new Set();
+      }
+    }
+
+    function saveProgress() {
+      try {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify([...completed]));
+      } catch {
+        alert("Não foi possível salvar no navegador. Você pode exportar o progresso como arquivo.");
+      }
+    }
+
+    function render() {
+      const count = completed.size;
+      const percent = Math.round((count / readings.length) * 100);
+      document.getElementById("percent").textContent = percent + "%";
+      document.getElementById("progressFill").style.width = percent + "%";
+      document.getElementById("progressTrack").setAttribute("aria-valuenow", percent);
+      document.getElementById("progressText").textContent = `${count} de ${readings.length} dias concluídos`;
+      document.getElementById("completedCount").textContent = count;
+      document.getElementById("remainingCount").textContent = readings.length - count;
+
+      let streak = 0;
+      for (let day = 1; day <= readings.length; day++) {
+        if (completed.has(day)) streak++;
+        else break;
+      }
+      document.getElementById("streakCount").textContent = streak;
+
+      const query = document.getElementById("search").value.trim().toLocaleLowerCase("pt-BR");
+      const status = document.getElementById("statusFilter").value;
+      const filtered = readings.filter(item => {
+        const done = completed.has(item.day);
+        const matchesQuery = `${item.day} ${item.reading} ${item.note || ""}`.toLocaleLowerCase("pt-BR").includes(query);
+        const matchesStatus = status === "all" || (status === "done" && done) || (status === "pending" && !done);
+        return matchesQuery && matchesStatus;
+      });
+
+      const list = document.getElementById("dayList");
+      list.innerHTML = "";
+      if (!filtered.length) {
+        list.innerHTML = '<div class="empty">Nenhuma leitura encontrada.</div>';
+        return;
+      }
+
+      filtered.forEach(item => {
+        const done = completed.has(item.day);
+        const row = document.createElement("label");
+        row.className = "day" + (done ? " done" : "");
+
+        const checkbox = document.createElement("input");
+        checkbox.type = "checkbox";
+        checkbox.checked = done;
+        checkbox.setAttribute("aria-label", `Marcar dia ${item.day} como concluído`);
+        checkbox.addEventListener("change", () => {
+          if (checkbox.checked) completed.add(item.day);
+          else completed.delete(item.day);
+          saveProgress();
+          render();
+        });
+
+        const content = document.createElement("div");
+        content.className = "day-content";
+        const title = document.createElement("div");
+        title.className = "day-title";
+        title.textContent = `Dia ${item.day}`;
+        if (done) {
+          const badge = document.createElement("span");
+          badge.className = "badge";
+          badge.textContent = "Concluído";
+          title.appendChild(badge);
+        }
+        const reading = document.createElement("div");
+        reading.className = "day-reading";
+        reading.textContent = item.reading;
+        content.append(title, reading);
+        if (item.note) {
+          const note = document.createElement("div");
+          note.className = "day-note";
+          note.textContent = item.note;
+          content.appendChild(note);
+        }
+        row.append(checkbox, content);
+        list.appendChild(row);
+      });
+    }
+
+    document.getElementById("search").addEventListener("input", render);
+    document.getElementById("statusFilter").addEventListener("change", render);
+
+    document.getElementById("markToday").addEventListener("click", () => {
+      const next = readings.find(item => !completed.has(item.day));
+      if (!next) {
+        alert("Parabéns! Você concluiu todos os 30 dias deste cronograma.");
+        return;
+      }
+      completed.add(next.day);
+      saveProgress();
+      render();
+    });
+
+    document.getElementById("exportProgress").addEventListener("click", () => {
+      const data = {
+        title: "Cronograma de Leitura Bíblica — início em Josué",
+        exportedAt: new Date().toISOString(),
+        completedDays: [...completed].sort((a, b) => a - b),
+        totalDays: readings.length,
+        readings
+      };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = "progresso-leitura-biblica.json";
+      link.click();
+      URL.revokeObjectURL(url);
+    });
+
+    document.getElementById("resetProgress").addEventListener("click", () => {
+      if (confirm("Tem certeza de que deseja apagar todas as marcações de leitura?")) {
+        completed.clear();
+        saveProgress();
+        render();
+      }
+    });
+
+    render();
+  </script>
+</body>
+</html>
